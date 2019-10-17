@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torchvision
+import torchvision #convienent ops for CV
 import torchvision.transforms as transforms
-
-
-# Device configuration
+import torch.utils.data
+# Device configuration used for the initialization of model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-parameters 
@@ -15,11 +14,13 @@ num_epochs = 5
 batch_size = 100
 learning_rate = 0.001
 
-# MNIST dataset 
+# MNIST dataset
+#if you want to construct your own datasets, you should use  datasets.ImageFolder to use your own images data and then
+#use torch.utils.data.DataLoader to load it
 train_dataset = torchvision.datasets.MNIST(root='../../data', 
                                            train=True, 
                                            transform=transforms.ToTensor(),  
-                                           download=True)
+                                           download=True)#there is another attribute that controll the target transfer
 
 test_dataset = torchvision.datasets.MNIST(root='../../data', 
                                           train=False, 
@@ -36,6 +37,11 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 
 # Fully connected neural network with one hidden layer
 class NeuralNet(nn.Module):
+    '''
+    herit from nn.Module
+    most basic net. you should make it as a class
+    in __init__ we define the basic units and then put then together in forward function.
+    '''
     def __init__(self, input_size, hidden_size, num_classes):
         super(NeuralNet, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size) 
@@ -48,7 +54,10 @@ class NeuralNet(nn.Module):
         out = self.fc2(out)
         return out
 
+#initialization of class
 model = NeuralNet(input_size, hidden_size, num_classes).to(device)
+
+########### next is equal to the activation ##################
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -67,9 +76,9 @@ for epoch in range(num_epochs):
         loss = criterion(outputs, labels)
         
         # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        optimizer.zero_grad() #Clears the gradients of all optimized
+        loss.backward() #=sess.run
+        optimizer.step() # =tf.optimizer.upgrade()
         
         if (i+1) % 100 == 0:
             print ('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}' 
@@ -91,4 +100,4 @@ with torch.no_grad():
     print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
 
 # Save the model checkpoint
-torch.save(model.state_dict(), 'model.ckpt')
+torch.save(model.state_dict(), 'model.ckpt')#state_dict() Returns a dictionary containing a whole state of the module
