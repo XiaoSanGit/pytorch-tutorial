@@ -29,8 +29,9 @@ optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 # Train the model
 for epoch in range(num_epochs):
     # Convert numpy arrays to torch tensors
+    # a way to feed data directly
     inputs = torch.from_numpy(x_train)
-    targets = torch.from_numpy(y_train)
+    targets = torch.from_numpy(y_train) #we can construct datasets and loop it or directly use this as model() input
 
     # Forward pass
     outputs = model(inputs)

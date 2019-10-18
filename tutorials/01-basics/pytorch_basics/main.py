@@ -3,7 +3,7 @@ import torchvision
 import torch.nn as nn
 import numpy as np
 import torchvision.transforms as transforms
-
+import torch.utils.data
 
 # ================================================================== #
 #                         Table of Contents                          #
@@ -118,6 +118,7 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                            shuffle=True)
 
 # When iteration starts, queue and thread start to load data from files.
+# a tensorflow fashion way to use datasets
 data_iter = iter(train_loader)
 
 # Mini-batch images and labels.

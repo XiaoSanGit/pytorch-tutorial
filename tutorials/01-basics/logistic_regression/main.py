@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-
+import torch.utils.data
 
 # Hyper-parameters 
 input_size = 784
@@ -15,7 +15,7 @@ learning_rate = 0.001
 train_dataset = torchvision.datasets.MNIST(root='../../data', 
                                            train=True, 
                                            transform=transforms.ToTensor(),
-                                           download=True)
+                                           download=False)
 
 test_dataset = torchvision.datasets.MNIST(root='../../data', 
                                           train=False, 
@@ -35,7 +35,7 @@ model = nn.Linear(input_size, num_classes)
 
 # Loss and optimizer
 # nn.CrossEntropyLoss() computes softmax internally
-criterion = nn.CrossEntropyLoss()  
+criterion = nn.CrossEntropyLoss()  #the only difference from linear regression besides datasets
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)  
 
 # Train the model
