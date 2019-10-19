@@ -30,8 +30,8 @@ class Corpus(object):
                 words = line.split() + ['<eos>']
                 tokens += len(words)
                 for word in words: 
-                    self.dictionary.add_word(word)  
-        
+                    self.dictionary.add_word(word)
+
         # Tokenize the file content
         ids = torch.LongTensor(tokens)
         token = 0
@@ -41,6 +41,7 @@ class Corpus(object):
                 for word in words:
                     ids[token] = self.dictionary.word2idx[word]
                     token += 1
+        # to fit the demand of batch fashion train, clip the datasets to mulitiply of batch size
         num_batches = ids.size(0) // batch_size
         ids = ids[:num_batches*batch_size]
-        return ids.view(batch_size, -1)
+        return ids.view(batch_size, -1) # function view() is similiar to np.resize(), to size (batch_szie,-1)

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-
+import torch.utils.data
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -37,20 +37,21 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           shuffle=False)
 
 # Recurrent neural network (many-to-one)
+# most basic RNN
 class RNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes):
         super(RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True) #num_layers is the num of time step.
         self.fc = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
         # Set initial hidden and cell states 
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device) 
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device) #input size, out ,
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
         
-        # Forward propagate LSTM
+        # Forward propagate LSTM, will return output each time
         out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
         
         # Decode the hidden state of the last time step
@@ -68,7 +69,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 total_step = len(train_loader)
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
-        images = images.reshape(-1, sequence_length, input_size).to(device)
+        images = images.reshape(-1, sequence_length, input_size).to(device)# to sequence-like tensor
         labels = labels.to(device)
         
         # Forward pass

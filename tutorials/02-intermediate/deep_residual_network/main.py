@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-
+import torch.nn.utils
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -29,7 +29,7 @@ transform = transforms.Compose([
 train_dataset = torchvision.datasets.CIFAR10(root='../../data/',
                                              train=True, 
                                              transform=transform,
-                                             download=True)
+                                             download=False)
 
 test_dataset = torchvision.datasets.CIFAR10(root='../../data/',
                                             train=False, 
@@ -45,7 +45,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           shuffle=False)
 
 # 3x3 convolution
-def conv3x3(in_channels, out_channels, stride=1):
+def conv3x3(in_channels, out_channels, stride=1):#fixed kernel size and padding
     return nn.Conv2d(in_channels, out_channels, kernel_size=3, 
                      stride=stride, padding=1, bias=False)
 
@@ -56,9 +56,9 @@ class ResidualBlock(nn.Module):
         self.conv1 = conv3x3(in_channels, out_channels, stride)
         self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(out_channels, out_channels)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.downsample = downsample
+        self.conv2 = conv3x3(out_channels, out_channels)#same input same output
+        self.bn2 = nn.BatchNorm2d(out_channels)#use different ids of the actual same BN for differentiate them?
+        self.downsample = downsample #function input
         
     def forward(self, x):
         residual = x
@@ -76,6 +76,11 @@ class ResidualBlock(nn.Module):
 # ResNet
 class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=10):
+        '''
+        :param block:  the block function
+        :param layers: a list represents the nums used of each layers
+        :param num_classes:
+        '''
         super(ResNet, self).__init__()
         self.in_channels = 16
         self.conv = conv3x3(3, 16)
@@ -88,15 +93,15 @@ class ResNet(nn.Module):
         self.fc = nn.Linear(64, num_classes)
         
     def make_layer(self, block, out_channels, blocks, stride=1):
-        downsample = None
+        downsample = None #down sample is used to make the size and channels same
         if (stride != 1) or (self.in_channels != out_channels):
             downsample = nn.Sequential(
                 conv3x3(self.in_channels, out_channels, stride=stride),
                 nn.BatchNorm2d(out_channels))
         layers = []
         layers.append(block(self.in_channels, out_channels, stride, downsample))
-        self.in_channels = out_channels
-        for i in range(1, blocks):
+        self.in_channels = out_channels # modify the in_channels to be correct when using this function again.
+        for i in range(1, blocks):# 1,2->[1], here is only one block, this is an adaptive coding fashion for easy extension
             layers.append(block(out_channels, out_channels))
         return nn.Sequential(*layers)
     
@@ -112,7 +117,7 @@ class ResNet(nn.Module):
         out = self.fc(out)
         return out
     
-model = ResNet(ResidualBlock, [2, 2, 2]).to(device)
+model = ResNet(ResidualBlock, [2, 2, 2]).to(device) # every initialize must be 'to device'
 
 
 # Loss and optimizer
@@ -146,6 +151,7 @@ for epoch in range(num_epochs):
                    .format(epoch+1, num_epochs, i+1, total_step, loss.item()))
 
     # Decay learning rate
+    # in pytorch, it seems that not have easy ops for update lr
     if (epoch+1) % 20 == 0:
         curr_lr /= 3
         update_lr(optimizer, curr_lr)

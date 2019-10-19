@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.nn.utils import clip_grad_norm_
-from data_utils import Dictionary, Corpus
+from language_model.data_utils import Dictionary, Corpus
 
 
 # Device configuration
@@ -21,17 +21,18 @@ seq_length = 30
 learning_rate = 0.002
 
 # Load "Penn Treebank" dataset
-corpus = Corpus()
-ids = corpus.get_data('data/train.txt', batch_size)
+corpus = Corpus() #it contains a dictionary CLASS and function used to add words
+ids = corpus.get_data('language_model/data/train.txt', batch_size) #this data has been preprocessed, ids is a long tensor containing tokenized input
+#ids (batchsize,-1)
 vocab_size = len(corpus.dictionary)
-num_batches = ids.size(1) // seq_length
+num_batches = ids.size(1) // seq_length # for resize to n (batch, seq_length, channels)
 
 
 # RNN based language model
 class RNNLM(nn.Module):
     def __init__(self, vocab_size, embed_size, hidden_size, num_layers):
         super(RNNLM, self).__init__()
-        self.embed = nn.Embedding(vocab_size, embed_size)
+        self.embed = nn.Embedding(vocab_size, embed_size) # easy ops for mapping one-hot vocab_size to vector-like embedding size
         self.lstm = nn.LSTM(embed_size, hidden_size, num_layers, batch_first=True)
         self.linear = nn.Linear(hidden_size, vocab_size)
         
@@ -40,7 +41,7 @@ class RNNLM(nn.Module):
         x = self.embed(x)
         
         # Forward propagate LSTM
-        out, (h, c) = self.lstm(x, h)
+        out, (h, c) = self.lstm(x, h) #out is the feature of last layer
         
         # Reshape output to (batch_size*sequence_length, hidden_size)
         out = out.reshape(out.size(0)*out.size(1), out.size(2))
@@ -57,7 +58,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Truncated backpropagation
 def detach(states):
-    return [state.detach() for state in states] 
+    return [state.detach() for state in states]  #detach() returns new variable, which will not caculate gradients
 
 # Train the model
 for epoch in range(num_epochs):
@@ -65,20 +66,20 @@ for epoch in range(num_epochs):
     states = (torch.zeros(num_layers, batch_size, hidden_size).to(device),
               torch.zeros(num_layers, batch_size, hidden_size).to(device))
     
-    for i in range(0, ids.size(1) - seq_length, seq_length):
+    for i in range(0, ids.size(1) - seq_length, seq_length): # divide datasets by seq_length
         # Get mini-batch inputs and targets
         inputs = ids[:, i:i+seq_length].to(device)
         targets = ids[:, (i+1):(i+1)+seq_length].to(device)
         
         # Forward pass
-        states = detach(states)
+        states = detach(states) #separant each loop. the gradient will be truncated from last loop
         outputs, states = model(inputs, states)
-        loss = criterion(outputs, targets.reshape(-1))
+        loss = criterion(outputs, targets.reshape(-1)) # to sequence and compare
         
         # Backward and optimize
-        model.zero_grad()
+        model.zero_grad() #zero_grad() the whole model
         loss.backward()
-        clip_grad_norm_(model.parameters(), 0.5)
+        clip_grad_norm_(model.parameters(), 0.5) #Clips gradient norm of an iterable of parameters
         optimizer.step()
 
         step = (i+1) // seq_length

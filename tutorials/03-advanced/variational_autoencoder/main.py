@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
 from torchvision.utils import save_image
-
+import torch.utils.data
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -41,7 +41,7 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.fc1 = nn.Linear(image_size, h_dim)
         self.fc2 = nn.Linear(h_dim, z_dim)
-        self.fc3 = nn.Linear(h_dim, z_dim)
+        self.fc3 = nn.Linear(h_dim, z_dim) #fc2/3 is for mean and std
         self.fc4 = nn.Linear(z_dim, h_dim)
         self.fc5 = nn.Linear(h_dim, image_size)
         
@@ -51,7 +51,7 @@ class VAE(nn.Module):
     
     def reparameterize(self, mu, log_var):
         std = torch.exp(log_var/2)
-        eps = torch.randn_like(std)
+        eps = torch.randn_like(std) # introduce random
         return mu + eps * std
 
     def decode(self, z):
@@ -88,12 +88,13 @@ for epoch in range(num_epochs):
         if (i+1) % 10 == 0:
             print ("Epoch[{}/{}], Step [{}/{}], Reconst Loss: {:.4f}, KL Div: {:.4f}" 
                    .format(epoch+1, num_epochs, i+1, len(data_loader), reconst_loss.item(), kl_div.item()))
-    
+
+    #validation when train
     with torch.no_grad():
         # Save the sampled images
         z = torch.randn(batch_size, z_dim).to(device)
         out = model.decode(z).view(-1, 1, 28, 28)
-        save_image(out, os.path.join(sample_dir, 'sampled-{}.png'.format(epoch+1)))
+        save_image(out, os.path.join(sample_dir, 'sampled-{}.png'.format(epoch+1))) #from torchvision
 
         # Save the reconstructed images
         out, _, _ = model(x)
