@@ -63,9 +63,9 @@ def main(config):
     style = load_image(config.style, transform, shape=[content.size(2), content.size(3)])
     
     # Initialize a target image with the content image
-    target = content.clone().requires_grad_(True)
+    target = content.clone().requires_grad_(True) #images wait for transform
     
-    optimizer = torch.optim.Adam([target], lr=config.lr, betas=[0.5, 0.999])
+    optimizer = torch.optim.Adam([target], lr=config.lr, betas=[0.5, 0.999]) #the input of optimizer is parameters need to optimize
     vgg = VGGNet().to(device).eval()
     
     for step in range(config.total_step):
@@ -95,7 +95,7 @@ def main(config):
         
         # Compute total loss, backprop and optimize
         loss = content_loss + config.style_weight * style_loss 
-        optimizer.zero_grad()
+        optimizer.zero_grad() #in pytorch, when backward, the gradient is accumulated instead of replacation, so for each batch, we must zero the gradients first
         loss.backward()
         optimizer.step()
 

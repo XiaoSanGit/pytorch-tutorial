@@ -4,7 +4,7 @@ import torchvision
 import torch.nn as nn
 from torchvision import transforms
 from torchvision.utils import save_image
-
+import torch.utils.data
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Hyper-parameters
 latent_size = 64
 hidden_size = 256
-image_size = 784
+image_size = 2352
 num_epochs = 200
 batch_size = 100
 sample_dir = 'samples'
@@ -24,6 +24,7 @@ if not os.path.exists(sample_dir):
 # Image processing
 transform = transforms.Compose([
                 transforms.ToTensor(),
+                transforms.Lambda(lambda x: x.repeat(3,1,1)),
                 transforms.Normalize(mean=(0.5, 0.5, 0.5),   # 3 for RGB channels
                                      std=(0.5, 0.5, 0.5))])
 
@@ -38,6 +39,7 @@ data_loader = torch.utils.data.DataLoader(dataset=mnist,
                                           batch_size=batch_size, 
                                           shuffle=True)
 
+# the simplest version of D and G, we can define them as class and prepare the forward function, making it complex
 # Discriminator
 D = nn.Sequential(
     nn.Linear(image_size, hidden_size),
@@ -90,7 +92,7 @@ for epoch in range(num_epochs):
         # Compute BCE_Loss using real images where BCE_Loss(x, y): - y * log(D(x)) - (1-y) * log(1 - D(x))
         # Second term of the loss is always zero since real_labels == 1
         outputs = D(images)
-        d_loss_real = criterion(outputs, real_labels)
+        d_loss_real = criterion(outputs, real_labels) #because we input the real data, we try to converge the output of net to 1
         real_score = outputs
         
         # Compute BCELoss using fake images
@@ -103,7 +105,7 @@ for epoch in range(num_epochs):
         
         # Backprop and optimize
         d_loss = d_loss_real + d_loss_fake
-        reset_grad()
+        reset_grad() # after one turn, we should reset the gradient for another part training
         d_loss.backward()
         d_optimizer.step()
         
@@ -132,11 +134,11 @@ for epoch in range(num_epochs):
     
     # Save real images
     if (epoch+1) == 1:
-        images = images.reshape(images.size(0), 1, 28, 28)
+        images = images.reshape(images.size(0), 3, 28, 28)
         save_image(denorm(images), os.path.join(sample_dir, 'real_images.png'))
     
     # Save sampled images
-    fake_images = fake_images.reshape(fake_images.size(0), 1, 28, 28)
+    fake_images = fake_images.reshape(fake_images.size(0), 3, 28, 28)
     save_image(denorm(fake_images), os.path.join(sample_dir, 'fake_images-{}.png'.format(epoch+1)))
 
 # Save the model checkpoints 

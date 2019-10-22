@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision
 from torchvision import transforms
 from logger import Logger
-
+import torch.utils.data
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -73,7 +73,7 @@ for step in range(total_step):
     if (step+1) % 100 == 0:
         print ('Step [{}/{}], Loss: {:.4f}, Acc: {:.2f}' 
                .format(step+1, total_step, loss.item(), accuracy.item()))
-
+        # we can use tensorboard in pytorch
         # ================================================================== #
         #                        Tensorboard Logging                         #
         # ================================================================== #
@@ -95,3 +95,4 @@ for step in range(total_step):
 
         for tag, images in info.items():
             logger.image_summary(tag, images, step+1)
+        # after that we can use tensorboard --logdir='that logdir' to show result visually
